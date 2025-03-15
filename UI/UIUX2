@@ -1,0 +1,43 @@
+from fastapi import FastAPI, UploadFile, File
+import tensorflow as tf
+import numpy as np
+from PIL import Image
+import io
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI()
+
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allows all origins (use ["http://localhost:3000"] for more security)
+    allow_credentials=True,
+    allow_methods=["*"],  # Allows all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allows all headers
+)
+
+
+# Load a pre-trained MobileNetV2 model
+model = tf.keras.applications.MobileNetV2(weights="imagenet")
+
+def preprocess_image(image: Image.Image):
+    image = image.resize((224, 224))  # Resize for MobileNetV2
+    image = np.array(image) / 255.0  # Normalize
+    image = np.expand_dims(image, axis=0)  # Add batch dimension
+    return image
+
+@app.post("/predict/")
+async def predict(file: UploadFile = File(...)):
+    contents = await file.read()
+    image = Image.open(io.BytesIO(contents)).convert("RGB")
+    image = preprocess_image(image)
+    predictions = model.predict(image)
+    label = tf.keras.applications.mobilenet_v2.decode_predictions(predictions, top=1)[0][0][1]
+    confidence = float(predictions.max())
+    return {"label": label, "confidence": confidence}
+
+if _name_ == "_main_":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
