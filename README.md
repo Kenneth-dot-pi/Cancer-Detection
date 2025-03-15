@@ -1,2 +1,2 @@
-# Cancer-Detection
+# Skin -Cancer-Detection
 AI Cancer Detection
