@@ -1,0 +1,61 @@
+"use client";
+
+import { useState } from "react";
+
+export default function Home() {
+  const [image, setImage] = useState<File | null>(null);
+  const [result, setResult] = useState<{ label: string; confidence: number } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      setImage(event.target.files[0]);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!image) return;
+    setLoading(true);
+    const formData = new FormData();
+    formData.append("file", image);
+    
+    try {
+      const response = await fetch("http://127.0.0.1:8000/predict/", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+      setResult(data);
+    } catch (error) {
+      console.error("Error uploading image:", error);
+    }
+    setLoading(false);
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <h1 className="text-2xl font-bold mb-4">Skin Cancer Detection</h1>
+      <input type="file" accept="image/*" onChange={handleImageUpload} className="mb-4" />
+      <button
+        onClick={handleSubmit}
+        className="px-4 py-2 bg-blue-500 text-white rounded disabled:bg-gray-400"
+        disabled={!image || loading}
+      >
+        {loading ? "Processing..." : "Upload & Analyze"}
+      </button>
+      {result && (
+  <div className="mt-4 p-4 bg-gray-100 rounded">
+    <p className="text-lg font-bold">
+      <span className="text-gray-700">Prediction:</span>  
+      <span className="text-blue-600"> {result.label}</span> 
+    </p>
+    <p className="text-lg">
+      <span className="text-gray-700">Confidence:</span>  
+      <span className="text-green-600"> {(result.confidence * 100).toFixed(2)}%</span>
+    </p>
+  </div>
+)}
+
+    </div>
+  );
+}
